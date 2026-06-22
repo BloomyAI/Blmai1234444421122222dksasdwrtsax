@@ -31,6 +31,12 @@ yarn-error.log*
 .env.test.local
 .env.production.local
 
+# API keys and secrets
+*api.txt
+*api.key
+*secret.txt
+openrouterapi.txt
+
 # Vercel
 .vercel
 
