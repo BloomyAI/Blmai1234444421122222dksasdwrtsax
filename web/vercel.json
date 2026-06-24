@@ -1,13 +1,13 @@
 {
-  "buildCommand": "npm run build",
-  "outputDirectory": ".next",
-  "devCommand": "npm run dev",
-  "installCommand": "npm install",
+  "buildCommand": "cd web && npm run build",
+  "outputDirectory": "web/.next",
+  "devCommand": "cd web && npm run dev",
+  "installCommand": "cd web && npm install",
   "framework": "nextjs",
   "env": {
     "NEXTAUTH_URL": {
       "description": "URL for NextAuth",
-      "value": "https://your-domain.vercel.app"
+      "value": "https://bloomy-ai-mu.vercel.app"
     },
     "NEXTAUTH_SECRET": {
       "description": "Secret key for NextAuth",
