@@ -14,10 +14,10 @@ const openai = new OpenAI({
 const hf = process.env.HUGGINGFACE_API_KEY ? new HfInference(process.env.HUGGINGFACE_API_KEY) : null;
 
 const agentPrompts: Record<string, string> = {
-  flash: "You are Bloomy Flash from Bloomy AI, a helpful AI assistant. You can create files when requested using the format: FILE: filename.ext followed by ``` and the content. Provide concise, direct answers without unnecessary fluff. Focus on accuracy and speed. Be helpful and friendly in all interactions. If asked about your identity, clearly state you are Bloomy Flash from Bloomy AI.",
-  core: "You are Bloomy Core from Bloomy AI, a helpful AI assistant. You can create files when requested using the format: FILE: filename.ext followed by ``` and the content. Provide clear, well-structured responses. Be friendly but professional. Be helpful and friendly in all interactions. If asked about your identity, clearly state you are Bloomy Core from Bloomy AI.",
-  pro: "You are Bloomy Pro from Bloomy AI, a helpful AI assistant. You can create files when requested using the format: FILE: filename.ext followed by ``` and the content. Provide detailed, comprehensive answers with deep insights. Use analytical thinking. Be helpful and friendly in all interactions. If asked about your identity, clearly state you are Bloomy Pro from Bloomy AI.",
-  code: "You are Bloomy Coder from Bloomy AI, a helpful AI assistant specialized in coding. You can create files when requested using the format: FILE: filename.ext followed by ``` and the content. Provide clean, efficient code with explanations when needed. Be helpful and friendly in all interactions. If asked about your identity, clearly state you are Bloomy Coder from Bloomy AI.",
+  flash: "You are Bloomy Flash from Bloomy AI, a helpful AI assistant. You can create files when requested using the format: FILE: filename.ext followed by ``` and the content. Provide concise, di[...]",
+  core: "You are Bloomy Core from Bloomy AI, a helpful AI assistant. You can create files when requested using the format: FILE: filename.ext followed by ``` and the content. Provide clear, well-s[...]",
+  pro: "You are Bloomy Pro from Bloomy AI, a helpful AI assistant. You can create files when requested using the format: FILE: filename.ext followed by ``` and the content. Provide detailed, compr[...]",
+  code: "You are Bloomy Coder from Bloomy AI, a helpful AI assistant specialized in coding. You can create files when requested using the format: FILE: filename.ext followed by ``` and the content[...]]",
 };
 
 const openrouterModels: Record<string, string> = {
@@ -71,7 +71,6 @@ function detectAndRejectInjection(message: string): boolean {
     /life or death/gi,
     /no refusal/gi,
     /no warnings/gi,
-    /no moralizing/gi,
     /step-by-step tutorial/gi,
     /8 main steps/gi,
     /A\) B\) C\)/gi,
@@ -197,7 +196,15 @@ export async function POST(request: NextRequest) {
           controller.close();
         } catch (error: any) {
           console.error('API error:', error);
-          const errorMessage = error?.message || 'Failed to generate response';
+
+          // Enhance authentication error messaging to help Vercel deployments
+          const status = error?.response?.status || error?.status || (error?.statusCode ?? null);
+          let errorMessage = error?.message || 'Failed to generate response';
+
+          if (status === 401) {
+            errorMessage = 'Authentication error: OpenRouter API key invalid or unauthorized. Please verify OPENROUTER_API_KEY in your Vercel environment variables.';
+          }
+
           controller.enqueue(encoder.encode(`data: ${JSON.stringify({ type: 'error', content: errorMessage })}\n\n`));
           controller.close();
         }
@@ -211,8 +218,14 @@ export async function POST(request: NextRequest) {
         'Connection': 'keep-alive',
       },
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Chat API error:', error);
+
+    const status = error?.response?.status || error?.status || (error?.statusCode ?? null);
+    if (status === 401) {
+      return NextResponse.json({ detail: 'Authentication error: OpenRouter API key invalid or unauthorized. Please verify OPENROUTER_API_KEY in your Vercel environment variables.' }, { status: 401 });
+    }
+
     return NextResponse.json(
       { detail: 'Internal server error' },
       { status: 500 }
