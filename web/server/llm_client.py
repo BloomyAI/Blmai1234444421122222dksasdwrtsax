@@ -21,7 +21,7 @@ PROVIDERS = {
         "models": [
             "meta-llama/llama-3.3-70b-instruct:free",
             "meta-llama/llama-4-maverick:free",
-            "google/gemini-2.0-flash-exp:free",
+            "google/gemini-2.0-flash-lite-preview-02-05:free",
             "qwen/qwen-2.5-72b-instruct:free",
             "deepseek/deepseek-chat:free",
             "mistralai/mistral-7b-instruct:free",
