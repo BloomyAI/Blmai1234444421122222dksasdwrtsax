@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Send,
@@ -92,7 +92,7 @@ export default function ChatDetailPage() {
     "How can I assist you?",
   ];
 
-  const randomGreeting = greetings[Math.floor(Math.random() * greetings.length)];
+  const randomGreeting = useMemo(() => greetings[Math.floor(Math.random() * greetings.length)], []);
 
   const models = {
     flash: "Bloomy Flash",
@@ -483,6 +483,14 @@ export default function ChatDetailPage() {
 
   const createNewConversation = () => {
     const newConversationId = Date.now().toString();
+    const newConversation = {
+      id: newConversationId,
+      title: "New Conversation",
+      messages: [],
+      timestamp: new Date().toISOString(),
+    };
+    setConversations(prev => [newConversation, ...prev]);
+    localStorage.setItem('bloomy-conversations', JSON.stringify([newConversation, ...conversations]));
     router.push(`/chat/${newConversationId}`);
   };
 
@@ -498,7 +506,9 @@ export default function ChatDetailPage() {
     setConversations(updated);
     localStorage.setItem('bloomy-conversations', JSON.stringify(updated));
     setContextMenuOpen(false);
-    if (chatId === conversationId) {
+    if (chatId === conversationId && updated.length > 0) {
+      router.push(`/chat/${updated[0].id}`);
+    } else if (chatId === conversationId) {
       router.push('/chat');
     }
   };
