@@ -1,0 +1,69 @@
+name: Build Desktop Apps
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+    
+    - name: Install dependencies
+      run: |
+        cd desktop-app
+        npm ci
+    
+    - name: Build Electron app (Windows)
+      if: matrix.os == 'windows-latest'
+      run: |
+        cd desktop-app
+        npm run build -- --win
+    
+    - name: Build Electron app (macOS)
+      if: matrix.os == 'macos-latest'
+      run: |
+        cd desktop-app
+        npm run build -- --mac
+    
+    - name: Build Electron app (Linux)
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        cd desktop-app
+        npm run build -- --linux
+    
+    - name: Upload artifacts (Windows)
+      if: matrix.os == 'windows-latest'
+      uses: actions/upload-artifact@v4
+      with:
+        name: bloomy-desktop-windows
+        path: desktop-app/dist/*.exe
+    
+    - name: Upload artifacts (macOS)
+      if: matrix.os == 'macos-latest'
+      uses: actions/upload-artifact@v4
+      with:
+        name: bloomy-desktop-macos
+        path: desktop-app/dist/*.dmg
+    
+    - name: Upload artifacts (Linux)
+      if: matrix.os == 'ubuntu-latest'
+      uses: actions/upload-artifact@v4
+      with:
+        name: bloomy-desktop-linux
+        path: desktop-app/dist/*.AppImage

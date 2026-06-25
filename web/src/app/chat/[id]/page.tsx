@@ -23,13 +23,12 @@ import {
   Code,
   MoreHorizontal,
   User,
-  Crown,
   ArrowUp,
   MessageSquarePlus,
   Image as ImageIcon,
 } from "lucide-react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 
 interface Message {
@@ -58,6 +57,7 @@ interface Conversation {
 export default function ChatDetailPage() {
   const params = useParams();
   const conversationId = params.id as string;
+  const router = useRouter();
   const { data: session, status } = useSession();
   
   const [conversations, setConversations] = useState<Conversation[]>([]);
@@ -97,7 +97,6 @@ export default function ChatDetailPage() {
   const models = {
     flash: "Bloomy Flash",
     core: "Bloomy Core",
-    pro: "Bloomy Pro",
     code: "Bloomy Code",
   };
 
@@ -209,18 +208,18 @@ export default function ChatDetailPage() {
   // Check authentication on load
   useEffect(() => {
     if (status === "unauthenticated") {
-      window.location.href = '/login';
+      router.push('/login');
     } else if (status === "authenticated") {
       console.log("User is authenticated:", session);
     }
-  }, [status, session]);
+  }, [status, session, router]);
 
   const handleSend = async () => {
     if (!input.trim() && attachments.length === 0) return;
-    
+
     // Check if user is logged in
     if (!session) {
-      window.location.href = '/login';
+      router.push('/login');
       return;
     }
 
@@ -484,7 +483,7 @@ export default function ChatDetailPage() {
 
   const createNewConversation = () => {
     const newConversationId = Date.now().toString();
-    window.location.href = `/chat/${newConversationId}`;
+    router.push(`/chat/${newConversationId}`);
   };
 
   const handleContextMenu = (e: React.MouseEvent, chatId: string) => {
@@ -500,7 +499,7 @@ export default function ChatDetailPage() {
     localStorage.setItem('bloomy-conversations', JSON.stringify(updated));
     setContextMenuOpen(false);
     if (chatId === conversationId) {
-      window.location.href = '/chat';
+      router.push('/chat');
     }
   };
 
@@ -603,7 +602,7 @@ export default function ChatDetailPage() {
                     setConversations(prev => [...prev, newCoderChat]);
                     localStorage.setItem('bloomy-conversations', JSON.stringify([...conversations, newCoderChat]));
                   }
-                  window.location.href = `/chat/${coderConversationId}`;
+                  router.push(`/chat/${coderConversationId}`);
                 }}
                 className="flex items-center gap-3 px-3 py-2 rounded-md transition-colors text-sm text-dark-text-secondary hover:bg-dark-surface cursor-pointer"
               >
@@ -654,7 +653,7 @@ export default function ChatDetailPage() {
               {filteredSidebarConversations.map(conv => (
                 <div
                   key={conv.id}
-                  onClick={() => window.location.href = `/chat/${conv.id}`}
+                  onClick={() => router.push(`/chat/${conv.id}`)}
                   onContextMenu={(e) => handleContextMenu(e, conv.id)}
                   className={`group flex items-center gap-2 px-3 py-2 rounded-md cursor-pointer ${
                     conv.id === conversationId ? 'bg-dark-surface' : 'hover:bg-dark-surface'
@@ -681,10 +680,8 @@ export default function ChatDetailPage() {
                   )}
                   <div className="flex flex-col">
                     <span className="text-sm text-dark-text font-medium">{session?.user?.name || "Account Name"}</span>
-                    <span className="text-xs text-dark-text-secondary">Free Plan</span>
                   </div>
                 </div>
-                <div className="px-2 py-1 text-xs bg-dark-card rounded-full">Upgrade</div>
               </button>
               
               {accountDropdownOpen && session && (
@@ -760,7 +757,7 @@ export default function ChatDetailPage() {
                     {filteredConversations.map((conv) => (
                       <div
                         key={conv.id}
-                        onClick={() => { window.location.href = `/chat/${conv.id}`; }}
+                        onClick={() => { router.push(`/chat/${conv.id}`); }}
                         className="bg-dark-surface hover:bg-dark-card border border-dark-border rounded-lg p-4 cursor-pointer transition-colors group"
                       >
                         <div className="flex items-start justify-between">
@@ -901,25 +898,10 @@ export default function ChatDetailPage() {
                 >
                   Core
                 </button>
-                <button
-                  onClick={() => {
-                    setSelectedModel("pro");
-                    setModelDropdownOpen(false);
-                  }}
-                  className={`w-full px-3 py-2 text-left text-sm hover:bg-dark-surface transition-colors ${selectedModel === "pro" ? "text-dark-text" : "text-dark-text-secondary"}`}
-                >
-                  Pro
-                </button>
               </div>
             )}
           </div>
           <div className="flex-1" />
-          <button
-            className="flex items-center gap-2 px-3 py-2 bg-dark-card hover:bg-dark-border rounded-lg text-dark-text text-sm transition-colors"
-          >
-            <Crown className="w-4 h-4" />
-            Upgrade
-          </button>
           <button
             className="p-2 hover:bg-dark-border rounded-lg transition-colors"
             title="Refresh"

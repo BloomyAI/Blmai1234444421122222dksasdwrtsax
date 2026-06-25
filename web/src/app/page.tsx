@@ -79,12 +79,12 @@ export default function Home() {
             transition={{ duration: 0.6, delay: 0.5 }}
             className="flex items-center justify-center gap-4"
           >
-            <button className="btn-primary text-lg px-8 py-4">
-              Start Building
-            </button>
-            <button className="btn-secondary text-lg px-8 py-4">
-              View Demo
-            </button>
+            <a href="/downloads" className="btn-primary text-lg px-8 py-4 inline-flex items-center gap-2">
+              Download Bloomy Desktop
+            </a>
+            <a href="/chat" className="btn-secondary text-lg px-8 py-4 inline-flex items-center gap-2">
+              Start Chatting
+            </a>
           </motion.div>
         </motion.div>
 

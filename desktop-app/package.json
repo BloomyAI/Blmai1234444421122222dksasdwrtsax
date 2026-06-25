@@ -1,0 +1,39 @@
+{
+  "name": "bloomy-desktop",
+  "version": "1.0.0",
+  "description": "Bloomy AI Desktop Application",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder"
+  },
+  "build": {
+    "appId": "com.bloomy.desktop",
+    "productName": "Bloomy AI",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "index.html",
+      "logo.png"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "logo.png"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "logo.png"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "logo.png"
+    }
+  },
+  "devDependencies": {
+    "electron": "^42.4.1",
+    "electron-builder": "^26.15.3"
+  }
+}
