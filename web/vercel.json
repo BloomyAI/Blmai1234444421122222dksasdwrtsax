@@ -3,18 +3,5 @@
   "outputDirectory": "web/.next",
   "devCommand": "cd web && npm run dev",
   "installCommand": "cd web && npm install",
-  "framework": "nextjs",
-  "env": {
-    "NEXTAUTH_URL": {
-      "description": "URL for NextAuth",
-      "value": "https://bloomy-ai-mu.vercel.app"
-    },
-    "NEXTAUTH_SECRET": {
-      "description": "Secret key for NextAuth",
-      "generator": "secret"
-    },
-    "OPENROUTER_API_KEY": {
-      "description": "OpenRouter API key for free AI models (no refusals, good at coding)"
-    }
-  }
+  "framework": "nextjs"
 }
