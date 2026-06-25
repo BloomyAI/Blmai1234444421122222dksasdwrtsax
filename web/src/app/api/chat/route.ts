@@ -23,8 +23,8 @@ const agentPrompts: Record<string, string> = {
 const openrouterModels: Record<string, string> = {
   flash: "meta-llama/llama-3.2-1b-instruct",
   core: "google/gemma-4-31b-it:free",
-  pro: "~openai/gpt-mini-latest",
-  code: "moonshotai/kimi-k2.7-code",
+  pro: "z-ai/glm-5.2",
+  code: "~anthropic/claude-fable-latest",
 };
 
 const huggingfaceModels: Record<string, string> = {
@@ -35,7 +35,7 @@ const huggingfaceModels: Record<string, string> = {
 };
 
 const visionModels: Record<string, string> = {
-  flash: "meta-llama/llama-3.2-3b-instruct:free",
+  flash: "google/gemini-3.1-flash-image",
   core: "meta-llama/llama-3.2-3b-instruct:free",
   pro: "qwen/qwen-2.5-7b-instruct:free",
   code: "meta-llama/llama-3.2-3b-instruct:free",

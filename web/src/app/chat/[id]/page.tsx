@@ -86,17 +86,13 @@ export default function ChatDetailPage() {
   const [moreDropdownOpen, setMoreDropdownOpen] = useState(false);
   const [accountDropdownOpen, setAccountDropdownOpen] = useState(false);
 
-  const greetings = [
-    "Where should we begin?",
-    "Hello! How can I help you today?",
-    "What would you like to work on?",
-    "Ready to create something amazing?",
-    "Let's get started!",
-    "What's on your mind?",
-    "How can I assist you?",
-  ];
+  const greetings = {
+    flash: "What's on your mind today?",
+    core: "Where should we begin?",
+    code: "What would you like to build today?",
+  };
 
-  const randomGreeting = useRef(greetings[Math.floor(Math.random() * greetings.length)]).current;
+  const randomGreeting = useRef(greetings[selectedModel as keyof typeof greetings] || greetings.core).current;
 
   const models = {
     flash: "Bloomy Flash",

@@ -12,15 +12,23 @@ export default function WebSearch() {
   const handleSearch = async () => {
     if (!query.trim()) return;
     setIsSearching(true);
-    // TODO: Implement actual web search API
-    setTimeout(() => {
-      setResults([
-        { title: "Example Result 1", url: "https://example.com", snippet: "This is a sample search result..." },
-        { title: "Example Result 2", url: "https://example2.com", snippet: "Another sample search result..." },
-        { title: "Example Result 3", url: "https://example3.com", snippet: "Yet another sample search result..." },
-      ]);
+    try {
+      const response = await fetch('/api/web-search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setResults(data.results);
+      } else {
+        alert(data.error || 'Failed to search');
+      }
+    } catch (error) {
+      alert('Failed to search');
+    } finally {
       setIsSearching(false);
-    }, 1500);
+    }
   };
 
   return (

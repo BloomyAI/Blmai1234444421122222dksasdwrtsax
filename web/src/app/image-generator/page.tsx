@@ -12,11 +12,23 @@ export default function ImageGenerator() {
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
     setIsGenerating(true);
-    // TODO: Implement actual image generation API
-    setTimeout(() => {
-      setGeneratedImage("https://via.placeholder.com/512x512?text=Generated+Image");
+    try {
+      const response = await fetch('/api/image-generation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setGeneratedImage(data.image);
+      } else {
+        alert(data.error || 'Failed to generate image');
+      }
+    } catch (error) {
+      alert('Failed to generate image');
+    } finally {
       setIsGenerating(false);
-    }, 2000);
+    }
   };
 
   return (

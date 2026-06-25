@@ -12,11 +12,23 @@ export default function VideoGenerator() {
   const handleGenerate = async () => {
     if (!prompt.trim()) return;
     setIsGenerating(true);
-    // TODO: Implement actual video generation API
-    setTimeout(() => {
-      setGeneratedVideo("https://via.placeholder.com/640x360?text=Generated+Video");
+    try {
+      const response = await fetch('/api/video-generation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setGeneratedVideo(data.video);
+      } else {
+        alert(data.error || 'Failed to generate video');
+      }
+    } catch (error) {
+      alert('Failed to generate video');
+    } finally {
       setIsGenerating(false);
-    }, 3000);
+    }
   };
 
   return (
