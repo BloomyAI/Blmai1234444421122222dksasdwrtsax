@@ -92,7 +92,7 @@ export default function ChatDetailPage() {
     "How can I assist you?",
   ];
 
-  const randomGreeting = useMemo(() => greetings[Math.floor(Math.random() * greetings.length)], []);
+  const randomGreeting = useRef(greetings[Math.floor(Math.random() * greetings.length)]).current;
 
   const models = {
     flash: "Bloomy Flash",
