@@ -21,7 +21,7 @@ Premium web application for Bloomy AI with glassmorphism UI and smooth animation
 - **Framer Motion**: Smooth animations
 - **Lucide React**: Beautiful icons
 - **FastAPI**: Python backend server
-- **Bloomy AI**: Custom AI models based on leaked sources
+- **Bloomy AI**: Custom AI models based on the most powerful models that exist 
 
 ## Getting Started
 
