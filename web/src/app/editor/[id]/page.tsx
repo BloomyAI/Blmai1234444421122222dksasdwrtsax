@@ -6,6 +6,7 @@ import { Code2, Play, Save, Download, Terminal, Plus, X, ArrowLeft, FileText, Fo
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import Editor from "@monaco-editor/react";
+import JSZip from "jszip";
 
 interface FileNode {
   id: string;
@@ -419,12 +420,39 @@ export default function EditorDetailPage() {
     }
   };
 
-  const doDownload = () => {
-    const blob = new Blob([JSON.stringify({ name: workspaceName, files, conversations })], { type: "application/json" });
+  const doDownload = async () => {
+    const zip = new JSZip();
+
+    const addToZip = (nodes: FileNode[], folder: JSZip) => {
+      for (const node of nodes) {
+        if (node.type === "file") {
+          folder.file(node.name, node.content || "");
+        } else if (node.type === "folder") {
+          const sub = folder.folder(node.name)!;
+          if (node.children) addToZip(node.children, sub);
+        }
+      }
+    };
+
+    // Sync current tab contents into the file tree before zipping
+    const syncedFiles = tabs.reduce((acc: FileNode[], tab) => {
+      const updateNode = (nodes: FileNode[]): FileNode[] =>
+        nodes.map(node => {
+          if (node.id === tab.fileId) return { ...node, content: tab.content };
+          if (node.children) return { ...node, children: updateNode(node.children) };
+          return node;
+        });
+      return updateNode(acc);
+    }, files);
+
+    addToZip(syncedFiles, zip);
+
+    const blob = await zip.generateAsync({ type: "blob", compression: "DEFLATE", compressionOptions: { level: 6 } });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = `${workspaceName}.json`;
+    a.download = `${workspaceName}.zip`;
     a.click();
+    URL.revokeObjectURL(a.href);
   };
 
   const parseFilesFromContent = (content: string): { name: string; content: string }[] => {
@@ -542,8 +570,8 @@ export default function EditorDetailPage() {
     <div className="h-screen flex flex-col bg-[#0D1117] overflow-hidden">
       {/* Header */}
       <div className="h-14 bg-[#161B22] flex items-center px-4 gap-4 border-b border-[#30363D] shrink-0">
-        <Link href="/editor/list">
-          <button className="p-1 hover:bg-[#21262D] rounded">
+        <Link href="/chat">
+          <button className="p-1 hover:bg-[#21262D] rounded" title="Back to Chat">
             <ArrowLeft className="w-4 h-4 text-[#8B949E]" />
           </button>
         </Link>
