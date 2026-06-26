@@ -36,10 +36,10 @@ const maxTokensByModel: Record<string, number> = {
 };
 
 const visionModels: Record<string, string> = {
-  flash: "google/gemini-2.0-flash-exp:free",
-  core: "google/gemini-2.0-flash-exp:free",
-  pro: "google/gemini-2.0-flash-exp:free",
-  code: "google/gemini-2.0-flash-exp:free",
+  flash: "google/gemini-2.5-flash",
+  core: "openai/gpt-5.4-mini",
+  pro: "openai/gpt-oss-20b:free",
+  code: "z-ai/glm-5.2",
 };
 
 function detectAndRejectInjection(message: string): boolean {
