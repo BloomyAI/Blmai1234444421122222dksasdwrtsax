@@ -1,56 +1,7 @@
 const { app, BrowserWindow, Menu, ipcMain } = require('electron');
-const { spawn } = require('child_process');
 const path = require('path');
-const http = require('http');
 
 let mainWindow;
-let nextServer;
-
-// Poll until Next.js is up
-function waitForServer(url, maxTries = 40, interval = 500) {
-  return new Promise((resolve, reject) => {
-    let tries = 0;
-    const check = () => {
-      const req = http.get(url, { timeout: 1000 }, res => {
-        if (res.statusCode < 500) resolve();
-        else retry();
-      });
-      req.on('error', retry);
-      req.on('timeout', () => { req.destroy(); retry(); });
-    };
-    const retry = () => {
-      if (++tries >= maxTries) return reject(new Error('Next.js server did not start'));
-      setTimeout(check, interval);
-    };
-    check();
-  });
-}
-
-function startNextServer() {
-  const isDev = !app.isPackaged;
-  const webDir = isDev 
-    ? path.join(__dirname, '..', 'web')
-    : path.join(process.resourcesPath, 'web');
-
-  // Use the actual next CLI script rather than relying on .bin symlinks
-  const nextScript = path.join(webDir, 'node_modules', 'next', 'dist', 'bin', 'next');
-
-  nextServer = spawn(
-    process.execPath,
-    [nextScript, 'start', '--port', '3131'],
-    {
-      cwd: webDir,
-      env: { 
-        ...process.env, 
-        PORT: '3131',
-        ELECTRON_RUN_AS_NODE: '1'
-      },
-      stdio: 'inherit',
-    }
-  );
-
-  nextServer.on('error', err => console.error('Failed to start Next.js:', err));
-}
 
 function createWindow() {
   mainWindow = new BrowserWindow({
@@ -72,21 +23,11 @@ function createWindow() {
   // Remove native menu bar
   Menu.setApplicationMenu(null);
 
-  // Show a loading screen while Next.js boots
-  mainWindow.loadFile(path.join(__dirname, 'loading.html'));
+  // Load the chat interface from Vercel
+  mainWindow.loadURL('https://bloomyaiweb.vercel.app/chat/new');
 
-  waitForServer('http://localhost:3131/')
-    .then(() => {
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.loadURL('http://localhost:3131/chat/new');
-      }
-    })
-    .catch(err => {
-      console.error(err);
-      if (mainWindow && !mainWindow.isDestroyed()) {
-        mainWindow.loadURL('http://localhost:3131/chat/new');
-      }
-    });
+  // Open DevTools in development (optional)
+  // mainWindow.webContents.openDevTools();
 
   mainWindow.on('closed', () => { mainWindow = null; });
 }
@@ -100,7 +41,6 @@ ipcMain.on('window-maximize', () => {
 ipcMain.on('window-close', () => mainWindow?.close());
 
 app.whenReady().then(() => {
-  startNextServer();
   createWindow();
 
   app.on('activate', () => {
@@ -109,6 +49,5 @@ app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', () => {
-  if (nextServer) nextServer.kill();
   if (process.platform !== 'darwin') app.quit();
 });

@@ -30,8 +30,16 @@ const handler = NextAuth({
     },
     async redirect({ url, baseUrl }) {
       console.log("Redirect callback:", { url, baseUrl });
-      // Always redirect to chat after successful login
-      return baseUrl + "/chat";
+      // If the URL is relative, prepend the base URL
+      if (url.startsWith("/")) {
+        return `${baseUrl}${url}`;
+      }
+      // If the URL is on the same domain, use it
+      if (new URL(url).origin === baseUrl) {
+        return url;
+      }
+      // Otherwise, redirect to chat
+      return `${baseUrl}/chat`;
     },
     async session({ session, token }) {
       console.log("Session callback:", { session, token });
@@ -48,7 +56,7 @@ const handler = NextAuth({
   session: {
     strategy: "jwt",
   },
-  debug: true,
+  debug: false,
 });
 
 export { handler as GET, handler as POST };
