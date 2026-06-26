@@ -18,25 +18,8 @@
     "files": [
       "main.js",
       "preload.js",
-      "loading.html",
-      "logo.png",
-      "../web/.next/**/*",
-      "../web/public/**/*",
-      "../web/node_modules/**/*",
-      "../web/package.json"
-    ],
-    "extraResources": [
-      {
-        "from": "../web",
-        "to": "web",
-        "filter": [
-          ".next/**/*",
-          "public/**/*",
-          "node_modules/**/*",
-          "package.json",
-          "next.config.*"
-        ]
-      }
+      "index.html",
+      "logo.png"
     ],
     "win": {
       "target": "nsis",
