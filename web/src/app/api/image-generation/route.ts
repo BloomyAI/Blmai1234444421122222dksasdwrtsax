@@ -24,11 +24,11 @@ export async function POST(request: NextRequest) {
 
     // Use OpenRouter for image generation
     const response = await openai.chat.completions.create({
-      model: 'google/gemini-3.1-flash-image',
+      model: 'google/gemini-2.5-flash-image-preview',
       messages: [
         {
           role: 'system',
-          content: 'You are an image generation assistant. When asked to generate an image, describe the image in detail that would be generated. Return the description only.'
+          content: 'You are BloomyAI image generator assistant. When asked to generate an image, describe the image in detail that would be generated and provide the finished image.'
         },
         {
           role: 'user',
