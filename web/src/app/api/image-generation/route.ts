@@ -20,9 +20,17 @@ export async function POST(request: NextRequest) {
 
     const imageUrl = `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?nologo=true&seed=${Math.floor(Math.random() * 1000000)}`;
 
+    const imgResponse = await fetch(imageUrl);
+    if (!imgResponse.ok) {
+      throw new Error(`Failed to generate image: ${imgResponse.statusText}`);
+    }
+    const arrayBuffer = await imgResponse.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    const base64Image = `data:image/jpeg;base64,${buffer.toString('base64')}`;
+
     return NextResponse.json({ 
       success: true, 
-      image: imageUrl,
+      image: base64Image,
       description: prompt,
     });
 
