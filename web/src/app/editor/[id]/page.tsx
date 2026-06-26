@@ -58,6 +58,8 @@ export default function EditorDetailPage() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; nodeId: string | null } | null>(null);
+  const [renamingNodeId, setRenamingNodeId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
   const aiAbortRef = useRef<AbortController | null>(null);
   const editorRef = useRef<any>(null);
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -91,6 +93,20 @@ export default function EditorDetailPage() {
       txt: "plaintext",
       sh: "shell",
       sql: "sql",
+      // x64dbg / ASM / RE tools
+      asm: "assembly",
+      s: "assembly",
+      nasm: "assembly",
+      masm: "assembly",
+      dp64: "plaintext",
+      dp32: "plaintext",
+      dd64: "plaintext",
+      dd32: "plaintext",
+      script: "plaintext",
+      lua: "lua",
+      yara: "plaintext",
+      idc: "plaintext",
+      jython: "python",
     };
     return langMap[ext || ""] || "plaintext";
   };
@@ -272,19 +288,8 @@ export default function EditorDetailPage() {
     } else if (action === "rename" && nodeId) {
       const node = findNode(files, nodeId);
       if (node) {
-        const newName = prompt("Enter new name:", node.name);
-        if (newName) {
-          const renameNode = (nodes: FileNode[]): FileNode[] => {
-            return nodes.map(n => {
-              if (n.id === nodeId) return { ...n, name: newName };
-              if (n.children) return { ...n, children: renameNode(n.children) };
-              return n;
-            });
-          };
-          setFiles(renameNode(files));
-          // Update tab name if file
-          setTabs(prev => prev.map(t => t.fileId === nodeId ? { ...t, name: newName } : t));
-        }
+        setRenameValue(node.name);
+        setRenamingNodeId(nodeId);
       }
     } else if (action === "delete" && nodeId) {
       setFiles(prev => removeNode(prev, nodeId));
@@ -301,12 +306,28 @@ export default function EditorDetailPage() {
     }
   };
 
+  const commitRename = (nodeId: string) => {
+    const newName = renameValue.trim();
+    if (!newName) { setRenamingNodeId(null); return; }
+    const renameNode = (nodes: FileNode[]): FileNode[] =>
+      nodes.map(n => {
+        if (n.id === nodeId) return { ...n, name: newName };
+        if (n.children) return { ...n, children: renameNode(n.children) };
+        return n;
+      });
+    setFiles(renameNode(files));
+    setTabs(prev => prev.map(t => t.fileId === nodeId ? { ...t, name: newName } : t));
+    setRenamingNodeId(null);
+    setRenameValue("");
+  };
+
   const renderTree = (nodes: FileNode[], depth: number = 0) => {
     return nodes.map(node => (
       <div key={node.id} style={{ paddingLeft: `${depth * 12}px` }}>
         <div
           className="flex items-center gap-2 py-1 px-2 hover:bg-[#21262D] rounded cursor-pointer"
           onClick={() => {
+            if (renamingNodeId === node.id) return; // don't open file while renaming
             if (node.type === "file") {
               const existingTab = tabs.find(t => t.fileId === node.id);
               if (existingTab) {
@@ -329,13 +350,32 @@ export default function EditorDetailPage() {
             e.preventDefault();
             setContextMenu({ x: e.clientX, y: e.clientY, nodeId: node.id });
           }}
+          onDoubleClick={() => {
+            setRenameValue(node.name);
+            setRenamingNodeId(node.id);
+          }}
         >
           {node.type === "folder" ? (
-            <FolderOpen className="w-4 h-4 text-[#54AEFF]" />
+            <FolderOpen className="w-4 h-4 text-[#54AEFF] shrink-0" />
           ) : (
-            <FileText className="w-4 h-4 text-[#8B949E]" />
+            <FileText className="w-4 h-4 text-[#8B949E] shrink-0" />
           )}
-          <span className="text-sm text-[#C9D1D9] truncate">{node.name}</span>
+          {renamingNodeId === node.id ? (
+            <input
+              autoFocus
+              value={renameValue}
+              onChange={e => setRenameValue(e.target.value)}
+              onBlur={() => commitRename(node.id)}
+              onKeyDown={e => {
+                if (e.key === "Enter") commitRename(node.id);
+                if (e.key === "Escape") { setRenamingNodeId(null); setRenameValue(""); }
+              }}
+              onClick={e => e.stopPropagation()}
+              className="flex-1 bg-[#0D1117] border border-[#58A6FF] rounded px-1 text-sm text-[#C9D1D9] focus:outline-none"
+            />
+          ) : (
+            <span className="text-sm text-[#C9D1D9] truncate">{node.name}</span>
+          )}
         </div>
         {node.type === "folder" && node.children && renderTree(node.children, depth + 1)}
       </div>
@@ -423,10 +463,37 @@ export default function EditorDetailPage() {
   const doDownload = async () => {
     const zip = new JSZip();
 
+    // Build a content map: fileId → latest content
+    // Priority: active Monaco editor (for current file) > tab state > node.content from files tree
+    const contentMap = new Map<string, string>();
+
+    // 1. Seed from the files tree (persisted content)
+    const seedContent = (nodes: FileNode[]) => {
+      for (const node of nodes) {
+        if (node.type === "file") contentMap.set(node.id, node.content ?? "");
+        if (node.children) seedContent(node.children);
+      }
+    };
+    seedContent(files);
+
+    // 2. Override with tab state (in-memory edits not yet auto-saved)
+    for (const tab of tabs) {
+      contentMap.set(tab.fileId, tab.content);
+    }
+
+    // 3. Override active tab with live Monaco editor content (unsaved keystrokes)
+    if (activeTabId && editorRef.current) {
+      const liveContent = editorRef.current.getValue?.();
+      const activeTab = tabs.find(t => t.id === activeTabId);
+      if (activeTab && typeof liveContent === "string") {
+        contentMap.set(activeTab.fileId, liveContent);
+      }
+    }
+
     const addToZip = (nodes: FileNode[], folder: JSZip) => {
       for (const node of nodes) {
         if (node.type === "file") {
-          folder.file(node.name, node.content || "");
+          folder.file(node.name, contentMap.get(node.id) ?? "");
         } else if (node.type === "folder") {
           const sub = folder.folder(node.name)!;
           if (node.children) addToZip(node.children, sub);
@@ -434,18 +501,17 @@ export default function EditorDetailPage() {
       }
     };
 
-    // Sync current tab contents into the file tree before zipping
-    const syncedFiles = tabs.reduce((acc: FileNode[], tab) => {
-      const updateNode = (nodes: FileNode[]): FileNode[] =>
-        nodes.map(node => {
-          if (node.id === tab.fileId) return { ...node, content: tab.content };
-          if (node.children) return { ...node, children: updateNode(node.children) };
-          return node;
-        });
-      return updateNode(acc);
-    }, files);
+    addToZip(files, zip);
 
-    addToZip(syncedFiles, zip);
+    // Fallback: if files tree is empty but tabs exist, zip tabs directly
+    if (files.length === 0 && tabs.length > 0) {
+      for (const tab of tabs) {
+        const liveContent = (activeTabId === tab.id && editorRef.current?.getValue)
+          ? editorRef.current.getValue()
+          : tab.content;
+        zip.file(tab.name, liveContent);
+      }
+    }
 
     const blob = await zip.generateAsync({ type: "blob", compression: "DEFLATE", compressionOptions: { level: 6 } });
     const a = document.createElement("a");
