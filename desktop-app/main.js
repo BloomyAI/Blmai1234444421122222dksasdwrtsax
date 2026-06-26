@@ -30,15 +30,19 @@ function startNextServer() {
     ? path.join(__dirname, '..', 'web')
     : path.join(process.resourcesPath, 'web');
 
-  // Use the locally installed next binary
-  const nextBin = path.join(webDir, 'node_modules', '.bin', 'next');
+  // Use the actual next CLI script rather than relying on .bin symlinks
+  const nextScript = path.join(webDir, 'node_modules', 'next', 'dist', 'bin', 'next');
 
   nextServer = spawn(
-    process.platform === 'win32' ? `${nextBin}.cmd` : nextBin,
-    ['start', '--port', '3131'],
+    process.execPath,
+    [nextScript, 'start', '--port', '3131'],
     {
       cwd: webDir,
-      env: { ...process.env, PORT: '3131' },
+      env: { 
+        ...process.env, 
+        PORT: '3131',
+        ELECTRON_RUN_AS_NODE: '1'
+      },
       stdio: 'inherit',
     }
   );

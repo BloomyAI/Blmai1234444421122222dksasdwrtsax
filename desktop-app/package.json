@@ -19,7 +19,7 @@
       "main.js",
       "preload.js",
       "loading.html",
-      "logo.png",
+      "logo.png"
     ],
     "extraResources": [
       {
