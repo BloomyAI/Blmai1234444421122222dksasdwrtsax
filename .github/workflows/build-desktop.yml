@@ -24,6 +24,18 @@ jobs:
       with:
         node-version: '22'
 
+    - name: Install web dependencies
+      working-directory: web
+      run: npm install
+
+    - name: Build Next.js app
+      working-directory: web
+      run: npm run build
+      env:
+        NEXTAUTH_URL: http://localhost:3131
+        NEXTAUTH_SECRET: build-placeholder-secret
+        OPENROUTER_API_KEY: build-placeholder-key
+
     - name: Install Electron dependencies
       working-directory: desktop-app
       run: npm install
