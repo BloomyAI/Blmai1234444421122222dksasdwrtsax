@@ -9,9 +9,16 @@
       "kind": "installer"
     },
     {
-      "id": "macos",
-      "name": "macOS",
+      "id": "macos-arm64",
+      "name": "macOS (Apple Silicon)",
       "file": "Bloomy-AI-1.0.0-arm64.dmg",
+      "hint": "Open the .dmg and drag Bloomy AI to Applications",
+      "kind": "installer"
+    },
+    {
+      "id": "macos-x64",
+      "name": "macOS (Intel)",
+      "file": "Bloomy-AI-1.0.0-x64.dmg",
       "hint": "Open the .dmg and drag Bloomy AI to Applications",
       "kind": "installer"
     },
@@ -21,13 +28,6 @@
       "file": "Bloomy-AI-1.0.0-x64.AppImage",
       "hint": "chmod +x Bloomy-AI-1.0.0-x64.AppImage && ./Bloomy-AI-1.0.0-x64.AppImage",
       "kind": "installer"
-    },
-    {
-      "id": "linux-tarball",
-      "name": "Linux (tar.gz)",
-      "file": "Bloomy-AI-1.0.0-x64.tar.gz",
-      "hint": "tar -xzf archive.tar.gz then run the app inside",
-      "kind": "portable"
     }
   ]
 }

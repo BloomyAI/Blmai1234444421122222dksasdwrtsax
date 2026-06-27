@@ -28,7 +28,11 @@ function detectOs(): string {
   const ua = navigator.userAgent.toLowerCase();
   const platform = (navigator.platform || "").toLowerCase();
   if (platform.includes("win") || ua.includes("windows")) return "windows";
-  if (platform.includes("mac") || ua.includes("mac")) return "macos";
+  if (platform.includes("mac") || ua.includes("mac")) {
+    // Apple Silicon vs Intel — rough check
+    if (ua.includes("arm") || ua.includes("aarch64")) return "macos-arm64";
+    return "macos-x64";
+  }
   if (platform.includes("linux") || ua.includes("linux")) return "linux-appimage";
   return "unknown";
 }
