@@ -18,19 +18,48 @@
     "files": [
       "main.js",
       "preload.js",
+      "loading.html",
       "logo.png"
     ],
     "win": {
-      "target": "nsis",
-      "icon": "logo.png"
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "logo.png",
+      "artifactName": "Bloomy-AI-Setup-${version}.${ext}"
     },
     "mac": {
-      "target": "dmg",
-      "icon": "logo.png"
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["x64", "arm64"]
+        }
+      ],
+      "icon": "logo.png",
+      "artifactName": "Bloomy-AI-${version}-${arch}.${ext}"
     },
     "linux": {
-      "target": "AppImage",
-      "icon": "logo.png"
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": ["x64"]
+        },
+        {
+          "target": "tar.gz",
+          "arch": ["x64"]
+        }
+      ],
+      "icon": "logo.png",
+      "category": "Development",
+      "artifactName": "Bloomy-AI-${version}-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "artifactName": "Bloomy-AI-Setup-${version}.${ext}"
     }
   },
   "devDependencies": {

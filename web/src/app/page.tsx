@@ -150,9 +150,9 @@ export default function Home() {
           <h2 className="text-4xl font-bold text-center mb-12 gradient-text">Download Bloomy AI</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {[
-              { name: "Windows", icon: "fa-brands fa-microsoft", size: "125 MB", status: "Available" },
-              { name: "macOS", icon: "fa-brands fa-apple", size: "142 MB", status: "Coming Soon" },
-              { name: "Linux", icon: "fa-brands fa-linux", size: "118 MB", status: "Coming Soon" },
+              { name: "Windows", icon: "fa-brands fa-microsoft", size: "Installer (.exe)", status: "Available" },
+              { name: "macOS", icon: "fa-brands fa-apple", size: "Installer (.dmg)", status: "Available" },
+              { name: "Linux", icon: "fa-brands fa-linux", size: "AppImage / tar.gz", status: "Available" },
               { name: "iOS", icon: "fa-brands fa-app-store-ios", size: "98 MB", status: "Coming Soon" },
               { name: "Android", icon: "fa-brands fa-android", size: "105 MB", status: "Coming Soon" },
             ].map((platform, index) => (
@@ -167,11 +167,13 @@ export default function Home() {
                 <h3 className="text-xl font-bold mb-2">{platform.name}</h3>
                 <p className="text-white/60 mb-4">{platform.size}</p>
                 <button
+                  onClick={() => platform.status === "Available" && (window.location.href = "/downloads")}
                   className={`w-full py-3 rounded-lg font-medium ${
                     platform.status === "Available"
                       ? "btn-primary"
                       : "btn-secondary opacity-50 cursor-not-allowed"
                   }`}
+                  disabled={platform.status !== "Available"}
                 >
                   {platform.status === "Available" ? "Download" : "Coming Soon"}
                 </button>

@@ -1,6 +1,7 @@
 "use client";
 
-import { FileText, FolderOpen, FolderPlus, FilePlus } from "lucide-react";
+import { useState } from "react";
+import { FileText, Folder, FolderOpen, FolderPlus, FilePlus, ChevronRight, ChevronDown } from "lucide-react";
 import type { TreeNode } from "@/lib/ide/types";
 
 interface FileExplorerProps {
@@ -28,6 +29,8 @@ interface FileExplorerProps {
 function TreeItem({
   node,
   depth,
+  expanded,
+  onToggle,
   activePath,
   renamingPath,
   renameValue,
@@ -45,49 +48,76 @@ function TreeItem({
 }: {
   node: TreeNode;
   depth: number;
+  expanded: Set<string>;
+  onToggle: (path: string) => void;
 } & Omit<FileExplorerProps, "tree" | "searchQuery" | "onSearchChange" | "onNewFile" | "onNewFolder">) {
   const isRenaming = renamingPath === node.path;
   const isActive = activePath === node.path;
   const isDragging = draggedPath === node.path;
+  const isFolder = node.type === "folder";
+  const isExpanded = isFolder && expanded.has(node.path);
 
   return (
     <div>
       <div
-        draggable={node.type === "file" || node.type === "folder"}
+        draggable
         onDragStart={(e) => {
           e.stopPropagation();
           onDragStart(node.path);
         }}
         onDragEnd={onDragEnd}
         onDragOver={(e) => {
-          if (node.type === "folder") e.preventDefault();
+          if (isFolder) e.preventDefault();
         }}
         onDrop={(e) => {
           e.preventDefault();
           e.stopPropagation();
           if (draggedPath && draggedPath !== node.path) {
-            onDrop(node.type === "folder" ? node.path : null, draggedPath);
+            onDrop(isFolder ? node.path : null, draggedPath);
           }
         }}
-        style={{ paddingLeft: `${depth * 12 + 8}px` }}
-        className={`flex items-center gap-1.5 py-[3px] pr-2 rounded-sm cursor-pointer group ${
-          isActive ? "bg-[#37373d] text-[#ffffff]" : "text-[#cccccc] hover:bg-[#2a2d2e]"
+        style={{ paddingLeft: `${depth * 12 + 4}px` }}
+        className={`flex items-center gap-0.5 py-[3px] pr-2 cursor-pointer group text-[13px] ${
+          isActive ? "bg-[#1f6feb33] text-[#f0f6fc]" : "text-[#c9d1d9] hover:bg-[#21262d]"
         } ${isDragging ? "opacity-50" : ""}`}
         onClick={() => {
           if (isRenaming) return;
           onSelect?.(node.path);
-          if (node.type === "file") onOpenFile(node.path);
+          if (isFolder) {
+            onToggle(node.path);
+          } else {
+            onOpenFile(node.path);
+          }
         }}
         onContextMenu={(e) => {
           e.preventDefault();
           onContextMenu(e, node.path);
         }}
-        onDoubleClick={() => onStartRename(node.path, node.name)}
+        onDoubleClick={() => {
+          if (node.type === "file") onStartRename(node.path, node.name);
+        }}
       >
-        {node.type === "folder" ? (
-          <FolderOpen className="w-4 h-4 text-[#dcb67a] shrink-0" />
+        {isFolder ? (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggle(node.path);
+            }}
+            className="p-0.5 shrink-0 text-[#7d8590] hover:text-[#c9d1d9]"
+          >
+            {isExpanded ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+          </button>
         ) : (
-          <FileText className="w-4 h-4 text-[#519aba] shrink-0" />
+          <span className="w-4 shrink-0" />
+        )}
+        {isFolder ? (
+          isExpanded ? (
+            <FolderOpen className="w-4 h-4 text-[#7d8590] shrink-0" />
+          ) : (
+            <Folder className="w-4 h-4 text-[#7d8590] shrink-0" />
+          )
+        ) : (
+          <FileText className="w-4 h-4 text-[#7d8590] shrink-0" />
         )}
         {isRenaming ? (
           <input
@@ -100,33 +130,36 @@ function TreeItem({
               if (e.key === "Escape") onCancelRename();
             }}
             onClick={(e) => e.stopPropagation()}
-            className="flex-1 bg-[#0D1117] border border-[#58A6FF] rounded px-1 text-sm text-[#C9D1D9] focus:outline-none"
+            className="flex-1 bg-[#0d1117] border border-[#58a6ff] rounded px-1 text-[13px] text-[#c9d1d9] focus:outline-none"
           />
         ) : (
-          <span className="text-sm text-[#C9D1D9] truncate">{node.name}</span>
+          <span className="truncate">{node.name}</span>
         )}
       </div>
-      {node.children?.map((child) => (
-        <TreeItem
-          key={child.path}
-          node={child}
-          depth={depth + 1}
-          activePath={activePath}
-          renamingPath={renamingPath}
-          renameValue={renameValue}
-          onRenameValueChange={onRenameValueChange}
-          onOpenFile={onOpenFile}
-          onContextMenu={onContextMenu}
-          onStartRename={onStartRename}
-          onCommitRename={onCommitRename}
-          onCancelRename={onCancelRename}
-          onDrop={onDrop}
-          draggedPath={draggedPath}
-          onDragStart={onDragStart}
-          onDragEnd={onDragEnd}
-          onSelect={onSelect}
-        />
-      ))}
+      {isFolder && isExpanded &&
+        node.children?.map((child) => (
+          <TreeItem
+            key={child.path}
+            node={child}
+            depth={depth + 1}
+            expanded={expanded}
+            onToggle={onToggle}
+            activePath={activePath}
+            renamingPath={renamingPath}
+            renameValue={renameValue}
+            onRenameValueChange={onRenameValueChange}
+            onOpenFile={onOpenFile}
+            onContextMenu={onContextMenu}
+            onStartRename={onStartRename}
+            onCommitRename={onCommitRename}
+            onCancelRename={onCancelRename}
+            onDrop={onDrop}
+            draggedPath={draggedPath}
+            onDragStart={onDragStart}
+            onDragEnd={onDragEnd}
+            onSelect={onSelect}
+          />
+        ))}
     </div>
   );
 }
@@ -142,41 +175,43 @@ export function FileExplorer(props: FileExplorerProps) {
     onDrop,
     draggedPath,
     onDragEnd,
-    onSelect,
   } = props;
 
+  const [expanded, setExpanded] = useState<Set<string>>(() => new Set());
+
+  const toggleFolder = (path: string) => {
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (next.has(path)) next.delete(path);
+      else next.add(path);
+      return next;
+    });
+  };
+
   return (
-    <div className="flex flex-col h-full bg-[#252526]">
-      <div className="h-[35px] flex items-center px-4 text-[11px] uppercase tracking-wide text-[#bbbbbb] font-semibold shrink-0">
-        Explorer
+    <div className="flex flex-col h-full bg-[#010409]">
+      <div className="h-10 flex items-center justify-between px-3 text-xs font-semibold text-[#c9d1d9] shrink-0 border-b border-[#21262d]">
+        <span>Files</span>
+        <div className="flex gap-0.5">
+          <button onClick={() => onNewFile(null)} title="New file" className="p-1 hover:bg-[#21262d] rounded text-[#8b949e]">
+            <FilePlus className="w-3.5 h-3.5" />
+          </button>
+          <button onClick={() => onNewFolder(null)} title="New folder" className="p-1 hover:bg-[#21262d] rounded text-[#8b949e]">
+            <FolderPlus className="w-3.5 h-3.5" />
+          </button>
+        </div>
       </div>
-      <div className="px-3 pb-2">
+      <div className="px-2 py-2 shrink-0">
         <input
           type="text"
           value={searchQuery}
           onChange={(e) => onSearchChange(e.target.value)}
-          placeholder="Filter files..."
-          className="w-full bg-[#3c3c3c] border border-[#3c3c3c] focus:border-[#007acc] rounded px-2 py-1 text-[13px] text-[#cccccc] placeholder-[#858585] focus:outline-none"
+          placeholder="Go to file..."
+          className="w-full bg-[#0d1117] border border-[#30363d] focus:border-[#58a6ff] rounded-md px-2 py-1 text-xs text-[#c9d1d9] placeholder-[#484f58] focus:outline-none"
         />
       </div>
-      <div className="px-1 pb-1 flex gap-1 shrink-0">
-        <button
-          onClick={() => onNewFile(null)}
-          title="New File"
-          className="p-1 hover:bg-[#2a2d2e] rounded text-[#cccccc]"
-        >
-          <FilePlus className="w-4 h-4" />
-        </button>
-        <button
-          onClick={() => onNewFolder(null)}
-          title="New Folder"
-          className="p-1 hover:bg-[#2a2d2e] rounded text-[#cccccc]"
-        >
-          <FolderPlus className="w-4 h-4" />
-        </button>
-      </div>
       <div
-        className="flex-1 overflow-y-auto p-1 relative"
+        className="flex-1 overflow-y-auto px-1 pb-2"
         onDragOver={(e) => e.preventDefault()}
         onDrop={(e) => {
           e.preventDefault();
@@ -188,14 +223,21 @@ export function FileExplorer(props: FileExplorerProps) {
         }}
       >
         {tree.length === 0 ? (
-          <div className="p-4 text-center text-[#8B949E]">
-            <FolderOpen className="w-10 h-10 mx-auto mb-2 opacity-50" />
-            <p className="text-sm">No files</p>
-            <p className="text-xs mt-1">Right-click or drag files here</p>
+          <div className="p-4 text-center text-[#8b949e] text-xs">
+            <FolderOpen className="w-8 h-8 mx-auto mb-2 opacity-40" />
+            <p>This workspace is empty</p>
+            <p className="mt-1 text-[#484f58]">Create a file or import a ZIP</p>
           </div>
         ) : (
           tree.map((node) => (
-            <TreeItem key={node.path} node={node} depth={0} {...props} />
+            <TreeItem
+              key={node.path}
+              node={node}
+              depth={0}
+              expanded={expanded}
+              onToggle={toggleFolder}
+              {...props}
+            />
           ))
         )}
       </div>

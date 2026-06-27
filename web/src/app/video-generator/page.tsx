@@ -22,7 +22,8 @@ export default function VideoGenerator() {
       const data = await response.json();
       if (data.success) {
         setGeneratedVideo(data.video);
-        setDescription(data.description);
+        setDescription(data.provider ? `${data.description} (${data.provider})` : data.description);
+        if (data.note) console.info(data.note);
       } else {
         alert(data.error || 'Failed to generate video');
       }
@@ -36,18 +37,29 @@ export default function VideoGenerator() {
   const handleDownload = async () => {
     if (!generatedVideo) return;
     try {
-      const res = await fetch(generatedVideo);
-      const blob = await res.blob();
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `bloomy-video-${Date.now()}.mp4`;
-      document.body.appendChild(a);
-      a.click();
-      window.URL.revokeObjectURL(url);
-      document.body.removeChild(a);
+      if (generatedVideo.startsWith('data:') || generatedVideo.startsWith('/')) {
+        const res = await fetch(generatedVideo);
+        const blob = await res.blob();
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `bloomy-video-${Date.now()}.mp4`;
+        document.body.appendChild(a);
+        a.click();
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      } else {
+        const a = document.createElement("a");
+        a.href = generatedVideo;
+        a.download = `bloomy-video-${Date.now()}.mp4`;
+        a.target = "_blank";
+        a.rel = "noopener noreferrer";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+      }
     } catch (err) {
-      alert("Failed to download video");
+      window.open(generatedVideo, "_blank");
     }
   };
 
@@ -59,7 +71,7 @@ export default function VideoGenerator() {
             <img src="/logo.png" alt="Bloomy AI" className="w-8 h-8" />
           </Link>
           <span className="font-semibold text-dark-text">Video Generator</span>
-          <span className="text-xs text-dark-text-secondary block mt-1">Wan 2.7 · alibaba/wan-2.7</span>
+          <span className="text-xs text-dark-text-secondary block mt-1">Wan 2.2 Fast (free via Pollinations)</span>
         </div>
         
         <div className="px-4 py-2">
@@ -93,7 +105,7 @@ export default function VideoGenerator() {
             <div className="text-center">
               <Video className="w-16 h-16 text-dark-text-secondary mx-auto mb-4" />
               <p className="text-dark-text-secondary">
-                {isGenerating ? 'Generating video with Wan 2.7… this may take a few minutes' : 'Enter a prompt to generate a video'}
+                {isGenerating ? 'Generating video… this may take a minute' : 'Enter a prompt to generate a video'}
               </p>
             </div>
           )}

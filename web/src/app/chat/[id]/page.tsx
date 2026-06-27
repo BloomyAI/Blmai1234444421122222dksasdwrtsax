@@ -69,6 +69,13 @@ export default function ChatDetailPage() {
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
   const [selectedModel, setSelectedModel] = useState(conversationId === 'coder' ? "code" : "flash");
+  const isCoderChat = conversationId === 'coder';
+
+  useEffect(() => {
+    if (conversationId === 'coder') {
+      setSelectedModel('code');
+    }
+  }, [conversationId]);
   const [modelDropdownOpen, setModelDropdownOpen] = useState(false);
   const [attachments, setAttachments] = useState<FileAttachment[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -307,12 +314,12 @@ export default function ChatDetailPage() {
         .slice(0, -1) // exclude the user message we just pushed
         .map(m => ({ role: m.role, content: m.content }));
 
-      const response = await fetch('/api/chat', {
+      const response = await fetch(isCoderChat ? '/api/coder' : '/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: messageToSend,
-          model: selectedModel,
+          ...(isCoderChat ? {} : { model: selectedModel }),
           conversationId: conversationId,
           attachments: attachmentsToSend.length > 0 ? attachmentsToSend : undefined,
           history: historyMessages,
@@ -971,6 +978,13 @@ export default function ChatDetailPage() {
           >
             <Sparkles className="w-5 h-5 text-dark-text-secondary" />
           </button>
+          {isCoderChat ? (
+            <div className="flex items-center gap-2 px-3 py-2 bg-dark-card rounded-md text-sm text-dark-text">
+              <Code className="w-4 h-4 text-bloomy-purple" />
+              <span className="font-medium">Bloomy Coder</span>
+              <span className="text-xs text-dark-text-secondary hidden sm:inline">· qwen3-coder free</span>
+            </div>
+          ) : (
           <div className="relative">
             <button
               onClick={() => setModelDropdownOpen(!modelDropdownOpen)}
@@ -1003,6 +1017,7 @@ export default function ChatDetailPage() {
               </div>
             )}
           </div>
+          )}
           <div className="flex-1" />
           <button
             className="p-2 hover:bg-dark-border rounded-lg transition-colors"

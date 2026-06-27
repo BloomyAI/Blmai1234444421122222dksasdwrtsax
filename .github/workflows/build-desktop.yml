@@ -1,68 +1,175 @@
-name: Build Desktop Apps
-
-on:
-  push:
-    branches:
-      - main
-  workflow_dispatch:
-
-jobs:
-  build:
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [windows-latest, macos-latest, ubuntu-latest]
-
-    runs-on: ${{ matrix.os }}
-
-    steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '22'
-
-    - name: Install Electron dependencies
-      working-directory: desktop-app
-      run: npm install
-
-    - name: Build Electron app (Windows)
-      if: matrix.os == 'windows-latest'
-      working-directory: desktop-app
-      run: npm run build:win
-
-    - name: Build Electron app (macOS)
-      if: matrix.os == 'macos-latest'
-      working-directory: desktop-app
-      run: npm run build:mac
-
-    - name: Build Electron app (Linux)
-      if: matrix.os == 'ubuntu-latest'
-      working-directory: desktop-app
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y libfuse2
-        npm run build:linux
-
-    - name: Upload artifacts (Windows)
-      if: matrix.os == 'windows-latest'
-      uses: actions/upload-artifact@v4
-      with:
-        name: bloomy-desktop-windows
-        path: desktop-app/dist/*.exe
-
-    - name: Upload artifacts (macOS)
-      if: matrix.os == 'macos-latest'
-      uses: actions/upload-artifact@v4
-      with:
-        name: bloomy-desktop-macos
-        path: desktop-app/dist/*.dmg
-
-    - name: Upload artifacts (Linux)
-      if: matrix.os == 'ubuntu-latest'
-      uses: actions/upload-artifact@v4
-      with:
-        name: bloomy-desktop-linux
-        path: desktop-app/dist/*.AppImage
+name: Build Desktop Apps
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: win
+          - os: macos-latest
+            platform: mac
+          - os: ubuntu-latest
+            platform: linux
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install Electron dependencies
+        working-directory: desktop-app
+        run: npm install
+
+      - name: Build Electron app (Windows)
+        if: matrix.platform == 'win'
+        working-directory: desktop-app
+        run: npm run build:win
+
+      - name: Build Electron app (macOS)
+        if: matrix.platform == 'mac'
+        working-directory: desktop-app
+        run: npm run build:mac
+
+      - name: Build Electron app (Linux)
+        if: matrix.platform == 'linux'
+        working-directory: desktop-app
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libfuse2
+          npm run build:linux
+
+      - name: List build output
+        shell: bash
+        run: ls -lah desktop-app/dist/
+
+      - name: Upload Windows installer
+        if: matrix.platform == 'win'
+        uses: actions/upload-artifact@v4
+        with:
+          name: bloomy-windows
+          path: desktop-app/dist/Bloomy-AI-Setup-*.exe
+          if-no-files-found: error
+
+      - name: Upload macOS disk images
+        if: matrix.platform == 'mac'
+        uses: actions/upload-artifact@v4
+        with:
+          name: bloomy-macos
+          path: desktop-app/dist/Bloomy-AI-*.dmg
+          if-no-files-found: error
+
+      - name: Upload Linux AppImage
+        if: matrix.platform == 'linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: bloomy-linux-appimage
+          path: desktop-app/dist/Bloomy-AI-*-x64.AppImage
+          if-no-files-found: error
+
+      - name: Upload Linux tar.gz
+        if: matrix.platform == 'linux'
+        uses: actions/upload-artifact@v4
+        with:
+          name: bloomy-linux-tarball
+          path: desktop-app/dist/Bloomy-AI-*-x64.tar.gz
+          if-no-files-found: error
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download all build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Prepare release assets (direct installers, no zip)
+        shell: bash
+        run: |
+          mkdir -p release
+          ls -lahR artifacts/
+          shopt -s nullglob
+
+          for f in artifacts/**/*.exe artifacts/*.exe; do
+            if [ -f "$f" ]; then
+              cp "$f" "release/Bloomy-AI-Setup-Windows.exe"
+              echo "Windows: $(basename "$f") -> Bloomy-AI-Setup-Windows.exe"
+              break
+            fi
+          done
+
+          for f in artifacts/**/*arm64*.dmg artifacts/*arm64*.dmg; do
+            if [ -f "$f" ]; then
+              cp "$f" "release/Bloomy-AI-macOS-arm64.dmg"
+              echo "macOS arm64: $(basename "$f")"
+            fi
+          done
+
+          for f in artifacts/**/*x64*.dmg artifacts/*x64*.dmg; do
+            if [ -f "$f" ] && [[ "$f" != *arm64* ]]; then
+              cp "$f" "release/Bloomy-AI-macOS-x64.dmg"
+              echo "macOS x64: $(basename "$f")"
+            fi
+          done
+
+          for f in artifacts/**/*.AppImage artifacts/*.AppImage; do
+            if [ -f "$f" ]; then
+              cp "$f" "release/Bloomy-AI-Linux-x64.AppImage"
+              echo "Linux AppImage: $(basename "$f")"
+              break
+            fi
+          done
+
+          for f in artifacts/**/*.tar.gz artifacts/*.tar.gz; do
+            if [ -f "$f" ]; then
+              cp "$f" "release/Bloomy-AI-Linux-x64.tar.gz"
+              echo "Linux tar.gz: $(basename "$f")"
+              break
+            fi
+          done
+
+          echo "Release assets:"
+          ls -lah release/
+
+          missing=0
+          [ -f release/Bloomy-AI-Setup-Windows.exe ] || { echo "Missing Windows .exe"; missing=1; }
+          [ -f release/Bloomy-AI-Linux-x64.AppImage ] || { echo "Missing Linux AppImage"; missing=1; }
+          [ -f release/Bloomy-AI-Linux-x64.tar.gz ] || { echo "Missing Linux tar.gz"; missing=1; }
+          [ -f release/Bloomy-AI-macOS-arm64.dmg ] || echo "Warning: no macOS arm64 dmg"
+          exit $missing
+
+      - name: Validate Linux tar.gz
+        run: tar -tzf release/Bloomy-AI-Linux-x64.tar.gz | head -5
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: desktop-v1.0.0-${{ github.run_number }}
+          name: Bloomy AI Desktop v1.0.0 (build ${{ github.run_number }})
+          draft: false
+          prerelease: false
+          make_latest: true
+          generate_release_notes: true
+          files: release/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+

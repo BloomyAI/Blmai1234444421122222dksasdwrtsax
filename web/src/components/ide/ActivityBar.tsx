@@ -13,38 +13,39 @@ interface ActivityBarProps {
 
 export function ActivityBar({ active, onChange, terminalOpen, onToggleTerminal }: ActivityBarProps) {
   const items: { id: SidebarView; icon: typeof Files; title: string }[] = [
-    { id: "explorer", icon: Files, title: "Explorer (Ctrl+Shift+E)" },
-    { id: "search", icon: Search, title: "Search (Ctrl+Shift+F)" },
+    { id: "explorer", icon: Files, title: "Explorer" },
+    { id: "search", icon: Search, title: "Search" },
     { id: "git", icon: GitBranch, title: "Source Control" },
-    { id: "ai", icon: Sparkles, title: "Bloomy AI" },
+    { id: "ai", icon: Sparkles, title: "Bloomy Coder" },
   ];
 
   return (
-    <div className="w-[48px] bg-[#333333] flex flex-col items-center shrink-0">
+    <div className="w-12 bg-[#010409] border-r border-[#30363d] flex flex-col items-center shrink-0">
       {items.map(({ id, icon: Icon, title }) => (
         <button
           key={id}
           onClick={() => onChange(id)}
           title={title}
-          className={`w-full h-[48px] flex items-center justify-center relative ${
-            active === id ? "text-[#ffffff]" : "text-[#858585] hover:text-[#cccccc]"
+          className={`w-full h-12 flex items-center justify-center relative border-l-2 ${
+            active === id
+              ? "text-[#f0f6fc] border-[#f78166] bg-[#161b22]"
+              : "text-[#7d8590] border-transparent hover:text-[#c9d1d9] hover:bg-[#161b22]"
           }`}
         >
-          {active === id && (
-            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-[70%] bg-[#ffffff]" />
-          )}
-          <Icon className="w-6 h-6" strokeWidth={1.5} />
+          <Icon className="w-5 h-5" strokeWidth={1.75} />
         </button>
       ))}
       <div className="flex-1" />
       <button
         onClick={onToggleTerminal}
-        title="Terminal (Ctrl+`)"
-        className={`w-full h-[48px] flex items-center justify-center ${
-          terminalOpen ? "text-[#ffffff]" : "text-[#858585] hover:text-[#cccccc]"
+        title="Terminal"
+        className={`w-full h-12 flex items-center justify-center border-l-2 ${
+          terminalOpen
+            ? "text-[#f0f6fc] border-[#f78166] bg-[#161b22]"
+            : "text-[#7d8590] border-transparent hover:text-[#c9d1d9] hover:bg-[#161b22]"
         }`}
       >
-        <Terminal className="w-6 h-6" strokeWidth={1.5} />
+        <Terminal className="w-5 h-5" strokeWidth={1.75} />
       </button>
     </div>
   );

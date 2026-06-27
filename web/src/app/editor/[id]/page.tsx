@@ -441,14 +441,11 @@ export default function EditorDetailPage() {
         .filter((m) => m.role === "user" || m.role === "assistant")
         .map((m) => ({ role: m.role, content: m.content }));
 
-      // Primary: use the same /api/chat endpoint that works in the main app
-      const res = await fetch("/api/chat", {
+      const res = await fetch("/api/coder", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           message: fullMessage,
-          model: "code",
-          conversationId: convId,
           history,
         }),
         signal: aiAbortRef.current.signal,

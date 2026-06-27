@@ -1,20 +1,80 @@
 "use client";
 
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
-import { Download, CheckCircle, Clock, AlertCircle } from "lucide-react";
+import { Download, CheckCircle, Clock, ExternalLink, Loader2, AlertCircle } from "lucide-react";
+
+type DownloadPlatform = {
+  id: string;
+  name: string;
+  fileName: string;
+  url: string;
+  size: string;
+  hint: string;
+  kind: "installer" | "portable";
+};
+
+type DownloadsResponse = {
+  available: boolean;
+  version: string;
+  tag?: string;
+  releasePage: string;
+  actionsPage?: string;
+  message?: string;
+  platforms: DownloadPlatform[];
+};
+
+function detectOs(): string {
+  if (typeof navigator === "undefined") return "unknown";
+  const ua = navigator.userAgent.toLowerCase();
+  const platform = (navigator.platform || "").toLowerCase();
+  if (platform.includes("win") || ua.includes("windows")) return "windows";
+  if (platform.includes("mac") || ua.includes("mac")) return "macos";
+  if (platform.includes("linux") || ua.includes("linux")) return "linux-appimage";
+  return "unknown";
+}
 
 export default function DownloadsPage() {
-  const platforms = [
-    { name: "Windows", icon: "fa-brands fa-microsoft", size: "97.4 MB", status: "Available", version: "1.0.0", file: "/downloads/bloomy-desktop.zip" },
-    { name: "macOS", icon: "fa-brands fa-apple", size: "116 MB", status: "Available", version: "1.0.0", file: "/downloads/bloomy-desktop-macos.zip" },
-    { name: "Linux", icon: "fa-brands fa-linux", size: "120 MB", status: "Available", version: "1.0.0", file: "/downloads/bloomy-desktop-linux.zip" },
-    { name: "iOS", icon: "fa-brands fa-app-store-ios", size: "98 MB", status: "Coming Soon", version: "1.0.0" },
-    { name: "Android", icon: "fa-brands fa-android", size: "105 MB", status: "Coming Soon", version: "1.0.0" },
+  const [data, setData] = useState<DownloadsResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [userOs] = useState(detectOs);
+
+  useEffect(() => {
+    fetch("/api/downloads")
+      .then((r) => r.json())
+      .then(setData)
+      .catch(() =>
+        setData({
+          available: false,
+          version: "1.0.0",
+          releasePage: "https://github.com/BloomyAI/BloomyAI/releases",
+          platforms: [],
+          message: "Failed to load download info.",
+        })
+      )
+      .finally(() => setLoading(false));
+  }, []);
+
+  const recommended = useMemo(() => {
+    if (!data?.platforms.length) return null;
+    return (
+      data.platforms.find((p) => p.id === userOs) ||
+      data.platforms.find((p) => p.id.startsWith(userOs.split("-")[0])) ||
+      data.platforms[0]
+    );
+  }, [data, userOs]);
+
+  const openDownload = (url: string) => {
+    window.location.href = url;
+  };
+
+  const comingSoon = [
+    { name: "iOS", icon: "fa-brands fa-app-store-ios" },
+    { name: "Android", icon: "fa-brands fa-android" },
   ];
 
   return (
     <div className="min-h-screen bg-[#1E222B]">
-      {/* Header */}
       <nav className="bg-[#15171E] border-b border-white/10">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -26,94 +86,150 @@ export default function DownloadsPage() {
             <a href="/chat" className="text-white/80 hover:text-white transition-colors">Chat</a>
             <a href="/editor" className="text-white/80 hover:text-white transition-colors">Editor</a>
             <a href="/downloads" className="text-white/80 hover:text-white transition-colors">Downloads</a>
-            <a href="/settings" className="text-white/80 hover:text-white transition-colors">Settings</a>
           </div>
         </div>
       </nav>
 
-      {/* Main Content */}
       <div className="max-w-7xl mx-auto px-6 py-12">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-        >
-          <h1 className="text-4xl font-bold mb-4 gradient-text">Download Bloomy AI</h1>
-          <p className="text-white/70 mb-12">Get Bloomy AI on your preferred platform</p>
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
+          <h1 className="text-4xl font-bold mb-4 gradient-text">Download Bloomy AI Desktop</h1>
+          <p className="text-white/70 mb-2">
+            Direct installers — no zip files. Pick your platform and run the setup file.
+          </p>
+          {data?.version && (
+            <p className="text-white/50 text-sm mb-8">
+              Latest build: v{data.version}
+              {data.tag ? ` (${data.tag})` : ""}
+            </p>
+          )}
+
+          {loading && (
+            <div className="flex items-center gap-2 text-white/60 mb-8">
+              <Loader2 className="w-5 h-5 animate-spin" />
+              Loading latest installers…
+            </div>
+          )}
+
+          {!loading && !data?.available && (
+            <div className="glass-card p-6 mb-8 border border-yellow-500/30">
+              <div className="flex gap-3">
+                <AlertCircle className="w-6 h-6 text-yellow-400 shrink-0" />
+                <div>
+                  <p className="text-white/90 mb-2">{data?.message}</p>
+                  <div className="flex flex-wrap gap-3 text-sm">
+                    <a
+                      href={data?.releasePage}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-bloomy-purple hover:underline inline-flex items-center gap-1"
+                    >
+                      GitHub Releases <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                    {data?.actionsPage && (
+                      <a
+                        href={data.actionsPage}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-bloomy-purple hover:underline inline-flex items-center gap-1"
+                      >
+                        Run build workflow <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {recommended && data?.available && (
+            <div className="glass-card p-6 mb-8 border border-bloomy-purple/40">
+              <p className="text-sm text-bloomy-purple mb-2 font-medium">Recommended for your device</p>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h2 className="text-xl font-bold">{recommended.name}</h2>
+                  <p className="text-white/60 text-sm">{recommended.fileName}{recommended.size ? ` · ${recommended.size}` : ""}</p>
+                  <p className="text-white/40 text-xs font-mono mt-1">{recommended.hint}</p>
+                </div>
+                <button
+                  onClick={() => openDownload(recommended.url)}
+                  className="btn-primary px-8 py-3 flex items-center justify-center gap-2 shrink-0"
+                >
+                  <Download className="w-4 h-4" />
+                  Download installer
+                </button>
+              </div>
+            </div>
+          )}
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {platforms.map((platform, index) => (
+            {(data?.platforms || []).map((platform, index) => (
               <motion.div
-                key={platform.name}
-                initial={{ opacity: 0, scale: 0.9 }}
+                key={platform.id}
+                initial={{ opacity: 0, scale: 0.95 }}
                 animate={{ opacity: 1, scale: 1 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-                className="glass-card p-6"
+                transition={{ duration: 0.4, delay: index * 0.08 }}
+                className={`glass-card p-6 ${platform.id === recommended?.id ? "ring-1 ring-bloomy-purple/50" : ""}`}
               >
                 <div className="flex items-center justify-between mb-4">
                   <div className="text-4xl text-bloomy-purple">
-                    <i className={platform.icon}></i>
+                    <i className={
+                      platform.id.includes("windows") ? "fa-brands fa-windows" :
+                      platform.id.includes("mac") ? "fa-brands fa-apple" :
+                      "fa-brands fa-linux"
+                    } />
                   </div>
-                  <div className={`flex items-center gap-2 text-sm ${
-                    platform.status === "Available" ? "text-green-400" : "text-yellow-400"
-                  }`}>
-                    {platform.status === "Available" ? (
-                      <CheckCircle className="w-4 h-4" />
-                    ) : (
-                      <Clock className="w-4 h-4" />
-                    )}
-                    {platform.status}
+                  <div className="flex items-center gap-2 text-sm text-green-400">
+                    <CheckCircle className="w-4 h-4" />
+                    Available
+                  </div>
+                </div>
+                <h3 className="text-xl font-bold mb-1">{platform.name}</h3>
+                <p className="text-white/60 text-sm mb-1 truncate" title={platform.fileName}>{platform.fileName}</p>
+                {platform.size && <p className="text-white/40 text-xs mb-2">{platform.size}</p>}
+                <p className="text-white/40 text-xs mb-4 font-mono leading-relaxed">{platform.hint}</p>
+                <button
+                  onClick={() => openDownload(platform.url)}
+                  className="w-full py-3 rounded-lg font-medium btn-primary hover:scale-[1.02] transition-transform flex items-center justify-center gap-2"
+                >
+                  <Download className="w-4 h-4" />
+                  {platform.kind === "installer" ? "Download installer" : "Download"}
+                </button>
+              </motion.div>
+            ))}
+
+            {comingSoon.map((platform, index) => (
+              <motion.div
+                key={platform.name}
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.4, delay: (data?.platforms.length || 0) * 0.08 + index * 0.08 }}
+                className="glass-card p-6 opacity-80"
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div className="text-4xl text-bloomy-purple"><i className={platform.icon} /></div>
+                  <div className="flex items-center gap-2 text-sm text-yellow-400">
+                    <Clock className="w-4 h-4" />
+                    Coming Soon
                   </div>
                 </div>
                 <h3 className="text-xl font-bold mb-2">{platform.name}</h3>
-                <p className="text-white/60 mb-4">{platform.size} • Version {platform.version}</p>
-                <button
-                  onClick={() => {
-                    if (platform.status === "Available" && platform.file) {
-                      const a = document.createElement("a");
-                      a.href = platform.file;
-                      a.download = platform.file.split("/").pop() || "download.zip";
-                      document.body.appendChild(a);
-                      a.click();
-                      document.body.removeChild(a);
-                    }
-                  }}
-                  className={`w-full py-3 rounded-lg font-medium flex items-center justify-center gap-2 ${
-                    platform.status === "Available"
-                      ? "btn-primary hover:scale-[1.02] transition-transform"
-                      : "btn-secondary opacity-50 cursor-not-allowed"
-                  }`}
-                  disabled={platform.status !== "Available"}
-                >
-                  <Download className="w-4 h-4" />
-                  {platform.status === "Available" ? "Download" : "Coming Soon"}
+                <button disabled className="w-full py-3 rounded-lg btn-secondary opacity-50 cursor-not-allowed">
+                  Coming Soon
                 </button>
               </motion.div>
             ))}
           </div>
 
-          {/* System Requirements */}
-          <div className="mt-12 glass-card p-6">
-            <h2 className="text-2xl font-bold mb-4 gradient-text">System Requirements</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <h3 className="font-semibold mb-2 text-bloomy-purple">Windows</h3>
-                <ul className="text-white/70 space-y-1 text-sm">
-                  <li>• Windows 10 or later</li>
-                  <li>• 4GB RAM minimum</li>
-                  <li>• 500MB free disk space</li>
-                </ul>
-              </div>
-              <div>
-                <h3 className="font-semibold mb-2 text-bloomy-purple">macOS</h3>
-                <ul className="text-white/70 space-y-1 text-sm">
-                  <li>• macOS 11.0 or later</li>
-                  <li>• 4GB RAM minimum</li>
-                  <li>• 500MB free disk space</li>
-                </ul>
-              </div>
-            </div>
-          </div>
+          {data?.releasePage && (
+            <a
+              href={data.releasePage}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 text-bloomy-purple hover:underline mt-10 text-sm"
+            >
+              All releases on GitHub <ExternalLink className="w-4 h-4" />
+            </a>
+          )}
         </motion.div>
       </div>
     </div>
