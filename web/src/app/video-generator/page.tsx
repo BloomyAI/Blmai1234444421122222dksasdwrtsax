@@ -33,6 +33,24 @@ export default function VideoGenerator() {
     }
   };
 
+  const handleDownload = async () => {
+    if (!generatedVideo) return;
+    try {
+      const res = await fetch(generatedVideo);
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `bloomy-video-${Date.now()}.mp4`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      alert("Failed to download video");
+    }
+  };
+
   return (
     <div className="h-screen flex bg-dark-bg">
       <div className="w-64 bg-dark-surface border-r border-dark-border flex flex-col">
@@ -62,7 +80,10 @@ export default function VideoGenerator() {
               <div className="max-w-3xl rounded-lg shadow-2xl bg-dark-card overflow-hidden flex items-center justify-center">
                 <video src={generatedVideo} autoPlay loop muted playsInline controls className="w-full h-auto max-h-[60vh] object-contain" />
               </div>
-              <button className="absolute bottom-4 right-4 bg-dark-card border border-dark-border px-4 py-2 rounded-md flex items-center gap-2 hover:bg-dark-surface transition-colors">
+              <button 
+                onClick={handleDownload}
+                className="absolute bottom-4 right-4 bg-dark-card border border-dark-border px-4 py-2 rounded-md flex items-center gap-2 hover:bg-dark-surface transition-colors"
+              >
                 <Download className="w-4 h-4" />
                 Download
               </button>
