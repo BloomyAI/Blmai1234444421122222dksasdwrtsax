@@ -29,7 +29,7 @@ const openrouterModels: Record<string, string> = {
 
 // Lower token ceilings per model for snappier first-token latency
 const maxTokensByModel: Record<string, number> = {
-  flash: 4096,
+  flash: 3198,
   core: 4096,
   pro: 8192,
   code: 32768,
