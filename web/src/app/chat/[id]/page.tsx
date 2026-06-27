@@ -690,7 +690,7 @@ export default function ChatDetailPage() {
               </div>
               <Link href="/editor/new" className="flex items-center gap-3 px-3 py-2 rounded-md transition-colors text-sm text-dark-text-secondary hover:bg-dark-surface">
                 <Terminal className="w-4 h-4" />
-                <span>Built-In IDE</span>
+                <span>Bloomy IDE</span>
               </Link>
               <div className="relative">
                 <button

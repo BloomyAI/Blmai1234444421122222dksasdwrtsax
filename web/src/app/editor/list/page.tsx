@@ -1,96 +1,86 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { FolderOpen, Plus, Search, ArrowLeft, FileText, Trash2, Download } from "lucide-react";
+import { FolderOpen, Plus, Search, ArrowLeft, Trash2, Download, Upload } from "lucide-react";
 import Link from "next/link";
-
-interface FileNode {
-  id: string;
-  name: string;
-  type: "file" | "folder";
-  content?: string;
-  children?: FileNode[];
-}
-
-interface Workspace {
-  id: string;
-  name: string;
-  files: FileNode[];
-  timestamp: string;
-}
+import { useRouter } from "next/navigation";
+import { loadWorkspaces, saveWorkspaces, createWorkspace } from "@/lib/ide/storage";
+import type { Workspace } from "@/lib/ide/types";
+import { importWorkspaceZip, exportWorkspaceZip, downloadBlob } from "@/lib/ide/zip";
+import { collectAllPaths } from "@/lib/ide/vfs";
 
 export default function EditorListPage() {
+  const router = useRouter();
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const importRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedWorkspaces = localStorage.getItem('bloomyai_workspaces');
-      if (savedWorkspaces) {
-        try {
-          const parsed = JSON.parse(savedWorkspaces);
-          if (parsed && parsed.length > 0) {
-            setWorkspaces(parsed);
-          }
-        } catch (e) {
-          console.error('Failed to load workspaces:', e);
-        }
-      }
-    }
+    setWorkspaces(loadWorkspaces());
   }, []);
 
   const createNewWorkspace = () => {
-    const newWorkspace: Workspace = {
-      id: Date.now().toString(),
-      name: "New Workspace",
-      files: [],
-      timestamp: new Date().toISOString(),
-    };
-    const updated = [newWorkspace, ...workspaces];
+    const ws = createWorkspace();
+    const updated = [ws, ...workspaces];
     setWorkspaces(updated);
-    localStorage.setItem('bloomyai_workspaces', JSON.stringify(updated));
-    window.location.href = `/editor/${newWorkspace.id}`;
+    saveWorkspaces(updated);
+    router.push(`/editor/${ws.id}`);
   };
 
   const deleteWorkspace = (id: string, e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
-    const updated = workspaces.filter(w => w.id !== id);
+    const updated = workspaces.filter((w) => w.id !== id);
     setWorkspaces(updated);
-    localStorage.setItem('bloomyai_workspaces', JSON.stringify(updated));
+    saveWorkspaces(updated);
   };
 
-  const countFiles = (files: FileNode[]): number => {
-    let count = 0;
-    files.forEach(file => {
-      if (file.type === "file") {
-        count++;
-      } else if (file.children) {
-        count += countFiles(file.children);
-      }
-    });
-    return count;
+  const exportWorkspace = async (ws: Workspace, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const blob = await exportWorkspaceZip(ws.name, ws.files, { includeDotfiles: true });
+    downloadBlob(blob, `${ws.name}.zip`);
   };
 
-  const filteredWorkspaces = workspaces.filter(ws =>
+  const handleImportZip = async (file: File) => {
+    const imported = await importWorkspaceZip(file);
+    const ws = createWorkspace(imported.name);
+    ws.files = imported.files;
+    const updated = [ws, ...workspaces];
+    setWorkspaces(updated);
+    saveWorkspaces(updated);
+    router.push(`/editor/${ws.id}`);
+  };
+
+  const filteredWorkspaces = workspaces.filter((ws) =>
     ws.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const formatDate = (timestamp: string) => {
     const date = new Date(timestamp);
     const now = new Date();
-    const diff = now.getTime() - date.getTime();
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    
-    if (days === 0) return 'Today';
-    if (days === 1) return 'Yesterday';
+    const days = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+    if (days === 0) return "Today";
+    if (days === 1) return "Yesterday";
     if (days < 7) return `${days} days ago`;
     return date.toLocaleDateString();
   };
 
   return (
     <div className="min-h-screen bg-[#1E222B]">
-      {/* Header */}
+      <input
+        ref={importRef}
+        type="file"
+        accept=".zip"
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0];
+          if (f) handleImportZip(f);
+          e.target.value = "";
+        }}
+      />
+
       <nav className="bg-[#15171E] border-b border-white/10">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -100,19 +90,26 @@ export default function EditorListPage() {
             <img src="/logo.png" alt="Bloomy AI" className="w-8 h-8 rounded-full" />
             <span className="text-xl font-bold gradient-text">Workspaces</span>
           </div>
-          <button
-            onClick={createNewWorkspace}
-            className="flex items-center gap-2 px-4 py-2 bg-[#1E222B] hover:bg-[#252933] rounded-lg text-white text-sm transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            New Workspace
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => importRef.current?.click()}
+              className="flex items-center gap-2 px-4 py-2 bg-[#15171E] hover:bg-[#252933] border border-white/10 rounded-lg text-white text-sm transition-colors"
+            >
+              <Upload className="w-4 h-4" />
+              Import ZIP
+            </button>
+            <button
+              onClick={createNewWorkspace}
+              className="flex items-center gap-2 px-4 py-2 bg-[#1E222B] hover:bg-[#252933] rounded-lg text-white text-sm transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              New Workspace
+            </button>
+          </div>
         </div>
       </nav>
 
-      {/* Main Content */}
       <div className="max-w-4xl mx-auto px-6 py-8">
-        {/* Search */}
         <div className="mb-6">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-white/40" />
@@ -126,18 +123,25 @@ export default function EditorListPage() {
           </div>
         </div>
 
-        {/* Workspaces List */}
         <div className="space-y-2">
           {filteredWorkspaces.length === 0 ? (
             <div className="text-center py-12">
               <FolderOpen className="w-16 h-16 mx-auto mb-4 text-white/20" />
               <p className="text-white/40 mb-4">No workspaces yet</p>
-              <button
-                onClick={createNewWorkspace}
-                className="px-6 py-3 bg-bloomy-purple hover:bg-bloomy-purple/80 rounded-lg text-white transition-colors"
-              >
-                Create your first workspace
-              </button>
+              <div className="flex gap-3 justify-center">
+                <button
+                  onClick={() => importRef.current?.click()}
+                  className="px-6 py-3 bg-[#15171E] border border-white/10 hover:bg-[#252933] rounded-lg text-white transition-colors"
+                >
+                  Import ZIP Project
+                </button>
+                <button
+                  onClick={createNewWorkspace}
+                  className="px-6 py-3 bg-bloomy-purple hover:bg-bloomy-purple/80 rounded-lg text-white transition-colors"
+                >
+                  Create Workspace
+                </button>
+              </div>
             </div>
           ) : (
             filteredWorkspaces.map((workspace, index) => (
@@ -158,22 +162,15 @@ export default function EditorListPage() {
                         <h3 className="text-white font-medium">{workspace.name}</h3>
                       </div>
                       <div className="flex items-center gap-4 text-sm text-white/60">
-                        <span>{countFiles(workspace.files)} files</span>
+                        <span>{collectAllPaths(workspace.files).length} files</span>
                         <span>{formatDate(workspace.timestamp)}</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          const blob = new Blob([JSON.stringify(workspace)], { type: "application/json" });
-                          const a = document.createElement("a");
-                          a.href = URL.createObjectURL(blob);
-                          a.download = `${workspace.name}.json`;
-                          a.click();
-                        }}
+                        onClick={(e) => exportWorkspace(workspace, e)}
                         className="opacity-0 group-hover:opacity-100 p-2 hover:bg-white/10 rounded-lg transition-all"
-                        title="Download"
+                        title="Export ZIP"
                       >
                         <Download className="w-4 h-4 text-white/60" />
                       </button>
