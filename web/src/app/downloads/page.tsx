@@ -94,7 +94,7 @@ export default function DownloadsPage() {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
           <h1 className="text-4xl font-bold mb-4 gradient-text">Download Bloomy AI Desktop</h1>
           <p className="text-white/70 mb-2">
-            Direct installers — no zip files. Pick your platform and run the setup file.
+            Direct installers — no zip files. Works with our private GitHub repo via secure download links.
           </p>
           {data?.version && (
             <p className="text-white/50 text-sm mb-8">
