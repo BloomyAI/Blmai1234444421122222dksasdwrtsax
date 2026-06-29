@@ -1132,7 +1132,7 @@ export default function ChatDetailPage() {
                     <button
                       onClick={handleSend}
                       disabled={!input.trim() || isTyping}
-                      className="p-2 bg-white text-black rounded-full hover:bg-gray-200 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="p-2 bg-dark-card text-dark-text rounded-full hover:bg-dark-surface transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       <ArrowUp className="w-4 h-4" />
                     </button>
