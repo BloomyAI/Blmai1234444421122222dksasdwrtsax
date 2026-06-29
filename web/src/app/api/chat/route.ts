@@ -25,10 +25,10 @@ const openrouterModels: Record<string, string> = {
 };
 
 const fallbackModels: Record<string, string[]> = {
-  flash: ["meta-llama/llama-3.3-70b-instruct", "meta-llama/llama-3-70b-instruct"],
-  core: ["meta-llama/llama-3.3-70b-instruct", "meta-llama/llama-3-70b-instruct"],
-  pro: ["meta-llama/llama-3.3-70b-instruct", "meta-llama/llama-3-70b-instruct"],
-  code: ["meta-llama/llama-3.3-70b-instruct", "meta-llama/llama-3-70b-instruct"],
+  flash: ["meta-llama/llama-3.3-70b-instruct", "meta-llama/llama-3.1-70b-instruct"],
+  core: ["meta-llama/llama-3.3-70b-instruct", "meta-llama/llama-3.1-70b-instruct"],
+  pro: ["meta-llama/llama-3.3-70b-instruct", "meta-llama/llama-3.1-70b-instruct"],
+  code: ["meta-llama/llama-3.3-70b-instruct", "meta-llama/llama-3.1-70b-instruct"],
 };
 
 const maxTokensByModel: Record<string, number> = {
